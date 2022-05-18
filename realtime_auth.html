@@ -163,6 +163,7 @@
                     uname: uname,
                     uid: uid,
                     text: $("#text").val(),
+                    deleteFrag: false,
                   };
                   const newPostRef = push(dbChatRef); //Pushできる状況を作って
                   set(newPostRef, msg); //DBに値をセットする
@@ -180,12 +181,44 @@
 
           // 物理削除、FdはPhysical Deletionの略
           $(document).on("click", 'button[data-btn^="btnFd"]', function () {
-            console.log("osetayo");
+            console.log("物理削除ボタン押した");
             console.log($(this).data("btn")); //thisでクリックされたそのものを取得して、そこに付与したdata-btn属性をdebugしている
             console.log($(this).data("btn").slice(5)); //replaceを使うともしkeyにbtnFdが含まれるとバグが起きるので、sliceを用いてbtnFd後の5の位置のみ切り出す
             const deleteKey = $(this).data("btn").slice(5);
             const dbRefDelete = ref(db, "chat/" + deleteKey);
             remove(dbRefDelete);
+          });
+
+          // 論理削除 パターン2、LdはLogical Deletionの略
+          $(document).on("click", 'button[data-btn^="btnLd"]', function () {
+            console.log("論理削除ボタン押せた");
+            console.log($(this).data("btn")); //thisでクリックされたそのものを取得して、そこに付与したdata-btn属性をdebugしている
+            console.log($(this).data("btn").slice(5)); //replaceを使うともしkeyにbtnFdが含まれるとバグが起きるので、sliceを用いてbtnFd後の5の位置のみ切り出す
+            const deleteKey = $(this).data("btn").slice(5);
+            get(child(ref(db), `chat/${deleteKey}`))
+              .then((snapshot) => {
+                if (snapshot.exists()) {
+                  console.log(snapshot.val()); //debug
+
+                  // set(child(ref(db), `chat/${deleteKey}`), msg);
+
+                  const dbRefDelete = ref(db, "chat/" + deleteKey);
+                  const postData = {
+                    uname: snapshot.val().uname,
+                    text: snapshot.val().text,
+                    uid: uid,
+                    deleteFrag: true,
+                  };
+                  const updates = {};
+                  updates["chat/" + deleteKey] = postData;
+                  update(ref(db), updates);
+                } else {
+                  console.log("No data available");
+                }
+              })
+              .catch((error) => {
+                console.error(error);
+              });
           });
 
           //データ登録(Enter)
@@ -202,6 +235,55 @@
           //   }
           // });
 
+          // 編集・更新 Udはupdateの略、UEはupdate endの略
+          // 編集可能にするための処理
+          $(document).on("click", 'button[data-btn^="btnUd"]', function () {
+            console.log("編集ボタン押せたよ");
+            console.log($(this).data("btn")); //thisでクリックされたそのものを取得して、そこに付与したdata-btn属性をdebugしている
+            console.log($(this).data("btn").slice(5)); //replaceを使うともしkeyにbtnUdが含まれるとバグが起きるので、sliceを用いてbtnFd後の5の位置のみ切り出す
+            const updateKey = $(this).data("btn").slice(5);
+            //編集終了ボタンに付け替える
+            $(this).html("編集終了");
+            $(this).removeAttr("data-btn");
+            $(this).attr("data-btn", "btnUE" + updateKey);
+            console.log($(`div[data-uname=uname${updateKey}]`));
+            $(`div[data-text=text${updateKey}]`).attr(
+              "contenteditable",
+              "true"
+            );
+          });
+          // 編集中状態を終わらせる処理
+          $(document).on("click", 'button[data-btn^="btnUE"]', function () {
+            console.log("編集終了ボタン押せたよ");
+            $(this).html("編集");
+            //編集対象のkeyやuname、textを取得
+            console.log($(this).data("btn")); //thisでクリックされたそのものを取得して、そこに付与したdata-btn属性をdebugしている
+            console.log($(this).data("btn").slice(5)); //replaceを使うともしkeyにbtnUdが含まれるとバグが起きるので、sliceを用いてbtnFd後の5の位置のみ切り出す
+            const updateEndKey = $(this).data("btn").slice(5);
+            $(this).removeAttr("data-btn");
+            $(this).attr("data-btn", "btnUd" + updateEndKey);
+            console.log($(`div[data-uname="uname${updateEndKey}"]`).html()); //debug
+            const updateUName = $(
+              `li[data-uname="uname${uid}"]`
+            ).html(); //編集後のunameを取得
+            const updateText = $(`div[data-text="text${updateEndKey}"]`).html(); //編集後のunameを取得
+            //dataを送信
+            const postData = {
+              uname: updateUName,
+              text: updateText,
+              uid: uid,
+              deleteFrag: false,
+            };
+            const updates = {};
+            updates["chat/" + updateEndKey] = postData;
+            update(ref(db), updates);
+            $(`div[data-text=text${updateEndKey}]`).attr(
+              "contenteditable",
+              "false"
+            );
+          });
+
+          //受信イベント
           // チャット参加者を取得して表示（最初にデータ取得＆onSnapshotでリアルタイムに）
           onChildAdded(ref(db, "users"), function (data) {
             const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
@@ -236,64 +318,114 @@
             console.log(msg);
             const key = data.key; //データのユニークキー（削除や更新に使用可能）
             console.log(key);
+            //deleteFragがfalseなら表示する
+            if (!msg.deleteFrag) {
+              let h = '<div id="';
+              h += key;
+              h += '">';
+              h += '<div data-uname="uname';
+              h += uid;
+              h += '">';
+              h += msg.uname;
+              h += '</div><div data-text="text';
+              h += key;
+              h += '">';
+              h += msg.text;
+              h += "</div><div>";
+              h += key;
+              h += "</div>";
+              // h += '<button data-btn="btnFd';
+              // h += key;
+              // h += '">';
+              // h += "物理削除";
+              // h += "</button>";
+              // h += '<button data-btn="btnLd';
+              // h += key;
+              // h += '">';
+              // h += "論理削除";
+              // h += "</button>";
+              // h += '<button data-btn="btnUd';
+              // h += key;
+              // h += '">';
+              // h += "編集";
+              // h += "</button>";
+              h += "</div>";
+              $("#chat__output").append(h);
 
-            let h = '<div id="';
-            h += key;
-            h += '">';
-            h += '<div data-uname="uname';
-            h += uid;
-            h += '">';
-            h += msg.uname;
-            h += '</div><div data-text="text';
-            h += key;
-            h += '">';
-            h += msg.text;
-            h += "</div><div>";
-            h += key;
-            h += "</div>";
-            // h += '<button data-btn="btnFd';
-            // h += key;
-            // h += '">';
-            // h += "物理削除";
-            // h += "</button>";
-            // h += '<button data-btn="btnLd';
-            // h += key;
-            // h += '">';
-            // h += "論理削除";
-            // h += "</button>";
-            // h += '<button data-btn="btnUd';
-            // h += key;
-            // h += '">';
-            // h += "編集";
-            // h += "</button>";
-            h += "</div>";
-            $("#chat__output").append(h);
+              if (msg.uid == uid) {
+                // 自身の場合、右表示。
+                console.log("自分");
+                $("#" + key).attr("class", "chat__right");
+                // 自分のチャットのみ物理削除及び論理削除できる
+                let buttonHtml = '<button data-btn="btnFd';
+                buttonHtml += key;
+                buttonHtml += '">';
+                buttonHtml += "物理削除";
+                buttonHtml += "</button>";
+                buttonHtml += '<button data-btn="btnLd';
+                buttonHtml += key;
+                buttonHtml += '">';
+                buttonHtml += "論理削除";
+                buttonHtml += "</button>";
+                buttonHtml += '<button data-btn="btnUd';
+                buttonHtml += key;
+                buttonHtml += '">';
+                buttonHtml += "編集";
+                buttonHtml += "</button>";
+                $(`#${key}`).append(buttonHtml);
+              } else {
+                //自身以外の場合、左表示
+                console.log("他人");
+                $("#" + key).attr("class", "chat__left");
+              }
+            }
+          });
 
-            if (msg.uid == uid) {
-              // 自身の場合、右表示。
-              console.log("自分");
-              $("#" + key).attr("class", "chat__right");
-              // 自分のチャットのみ物理削除及び論理削除できる
-              let buttonHtml = '<button data-btn="btnFd';
-              buttonHtml += key;
-              buttonHtml += '">';
-              buttonHtml += "物理削除";
-              buttonHtml += "</button>";
-              buttonHtml += '<button data-btn="btnLd';
-              buttonHtml += key;
-              buttonHtml += '">';
-              buttonHtml += "論理削除";
-              buttonHtml += "</button>";
-              buttonHtml += '<button data-btn="btnUd';
-              buttonHtml += key;
-              buttonHtml += '">';
-              buttonHtml += "編集";
-              buttonHtml += "</button>";
-              $(`#${key}`).append(buttonHtml);
+          //チャット子データ削除時に画面からも消す処理
+          onChildRemoved(dbChatRef, function (data) {
+            console.log("chiid_removedイベントがトリガーされた");
+            console.log(data); //debug
+            const key = data.key; //ユニークキーの取得
+            console.log($("#" + key));
+            $("#" + key).remove();
+          });
+
+          //子データの変更時
+          onChildChanged(dbChatRef, function (data) {
+            console.log("child_changedイベントがトリガーされた");
+            console.log(data); //debug
+            const key = data.key;
+            const msg = data.val();
+            if (msg.deleteFrag) {
+              //deleteKeyがtrueで理論削除されている場合は、チャットとして表示しない
+              $("#" + key).remove();
             } else {
-              //自身以外の場合、左表示
-              console.log("他人");
-              $("#" + key).attr("class", "chat__left");
+              //deleteKeyがfalseで理論削除されてなければ、チャットを編集して表示する
+              // let updateH = "<p>";
+              // updateH += msg.uname;
+              // updateH += "<br>";
+              // updateH += msg.text;
+              // updateH += "<br>";
+              // updateH += key;
+              // updateH += "</p>";
+              // updateH += '<button data-btn="btnFd';
+              // updateH += key;
+              // updateH += '">';
+              // updateH += "物理削除";
+              // updateH += "</button>";
+              // updateH += '<button data-btn="btnLd';
+              // updateH += key;
+              // updateH += '">';
+              // updateH += "論理削除";
+              // updateH += "</button>";
+              // updateH += '<button data-btn="btnUd';
+              // updateH += key;
+              // updateH += '">';
+              // updateH += "編集";
+              // updateH += "</button>";
+              // // 該当するチャットのみ編集する
+
+              $(`div[data-text="text${key}"]`).html(msg.text);
             }
           });
         } else {
