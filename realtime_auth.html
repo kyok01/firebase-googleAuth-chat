@@ -23,7 +23,10 @@
     <button id="out">ログアウト</button>
     <h2>チャットの参加者</h2>
     <div>
-      最初に名前を登録してください。すでに登録している場合更新できます。<br />名前：<input type="text" id="uname" />
+      最初に名前を登録してください。すでに登録している場合更新できます。<br />名前：<input
+        type="text"
+        id="uname"
+      />
       <button id="sendUname">送信</button>
     </div>
     <div>
@@ -55,6 +58,13 @@
         onChildAdded,
         remove,
         onChildRemoved,
+        get,
+        onChildChanged,
+        child,
+        update,
+        query,
+        orderByChild,
+        onValue,
       } from "https://www.gstatic.com/firebasejs/9.4.1/firebase-database.js";
 
       import {
@@ -124,25 +134,39 @@
             });
           }
 
-          let uname; //onAuthChangedのif(user)内で使用可能なユーザー名を表す変数
+          // let uname; //onAuthChangedのif(user)内で使用可能なユーザー名を表す変数
           $("#sendUname").on("click", function () {
-            uname = $("#uname").val();
+            const uname = $("#uname").val();
             const msg = {
               uname: uname,
             };
             // const newPostRef = push(dbProfRef); //Pushできる状況を作って
             set(dbProfRef, msg); //DBに値をセットする
+            $("#uname").val("");
           });
 
           //チャットデータ登録(Click)
           $("#sendText").on("click", function () {
-            const msg = {
-              uname: uname,
-              uid: uid,
-              text: $("#text").val(),
-            };
-            const newPostRef = push(dbChatRef); //Pushできる状況を作って
-            set(newPostRef, msg); //DBに値をセットする
+            get(child(ref(db), `users/${uid}`))
+              .then((snapshot) => {
+                if (snapshot.exists()) {
+                  console.log(snapshot.val()); //debug
+                  const uname = snapshot.val().uname;
+                  const msg = {
+                    uname: uname,
+                    uid: uid,
+                    text: $("#text").val(),
+                  };
+                  const newPostRef = push(dbChatRef); //Pushできる状況を作って
+                  set(newPostRef, msg); //DBに値をセットする
+                  $("#text").val("");
+                } else {
+                  console.log("No data available");
+                }
+              })
+              .catch((error) => {
+                console.error(error);
+              });
           });
 
           //データ登録(Enter)
@@ -165,8 +189,26 @@
             console.log(msg);
             const key = data.key; //データのユニークキー（削除や更新に使用可能）
             console.log(key);
-            const h = `<li>${msg.uname}</li>`;
+            const h = `<li data-uname="uname${key}">${msg.uname}</li>`;
             $("#participant__output").append(h);
+          });
+
+          //名前を変更したら名前の表示箇所が全て変更になる
+          onChildChanged(ref(db, "users"), function (data) {
+            const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
+            console.log(msg);
+            const key = data.key; //データのユニークキー（削除や更新に使用可能）
+            console.log(key);
+            // const h = `<li>${msg.uname}</li>`;
+            const uname = msg.uname
+            $(`[data-uname="uname${key}"]`).html(uname);
+
+            onChildAdded(dbChatRef, function(data){
+              const childKey = data.key;
+              if(data.val().uid == uid){
+                update(ref(db, `chat/${childKey}`), {uname: uname})
+              }
+            })
           });
 
           //チャットをリアルタイムで表示するための処理
@@ -175,7 +217,7 @@
             console.log(msg);
             const key = data.key; //データのユニークキー（削除や更新に使用可能）
             console.log(key);
-            
+
             let h = '<div id="';
             h += key;
             h += '">';
@@ -208,7 +250,6 @@
             h += "</div>";
             $("#chat__output").append(h);
           });
-
         } else {
           _redirect(); // User is signed out
         }
