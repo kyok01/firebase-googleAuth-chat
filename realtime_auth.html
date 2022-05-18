@@ -12,16 +12,33 @@
     </style>
   </head>
   <body>
-    <h1 id="status">Login...</h1>
-    <button id="out">ログアウト</button>
     <!-- コンテンツ表示画面 -->
+    <h1>チャット</h1>
+    <h2>ログイン情報</h2>
+    <div id="status">
+      <p>あなたは以下の情報でGoogle Loginしています</p>
+      <div>名前：</div>
+      <div>画像：</div>
+    </div>
+    <button id="out">ログアウト</button>
+    <h2>チャットの参加者</h2>
     <div>
-      <div>名前：<input type="text" id="uname" /></div>
-      <div>
-        <textarea id="text" cols="30" rows="10"></textarea>
-        <button id="send">送信</button>
+      最初に名前を登録してください。すでに登録している場合更新できます。<br />名前：<input type="text" id="uname" />
+      <button id="sendUname">送信</button>
+    </div>
+    <div>
+      <div id="participant">
+        <h2>チャットの参加者</h2>
+        <ul id="participant__output"></ul>
       </div>
-      <div id="output" style="overflow: auto; height: 300px;"></div>
+      <div>
+        <h2>チャット送信欄</h2>
+        <textarea id="text" cols="30" rows="10"></textarea>
+        <button id="sendText">送信</button>
+      </div>
+      <div id="chat">
+        <div id="chat__output" style="overflow: auto; height: 300px;"></div>
+      </div>
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -93,87 +110,109 @@
           // User is signed in, see docs for a list of available properties
           // https://firebase.google.com/docs/reference/js/firebase.User
           const uid = user.uid;
-          const dbRef = ref(db, "users/" + uid); //RealtimeDB内の"chat"を使う
+          const dbProfRef = ref(db, "users/" + uid); //RealtimeDB内のプロフィールを格納する場所
+          const dbChatRef = ref(db, "chat"); //RealtimeDB内の送信したチャットを格納する場所。ソートしやすいようにチャットだけで並べている
 
           //ユーザー情報取得できます
           if (user !== null) {
             user.providerData.forEach((profile) => {
               console.log("Sign-in provider: " + profile.providerId);
-              console.log("  Provider-specific UID: " + profile.uid);
-              console.log("  Name: " + profile.displayName);
-              console.log("  Email: " + profile.email);
+              // console.log("  Provider-specific UID: " + profile.uid);
+              // console.log("  Name: " + profile.displayName);
+              // console.log("  Email: " + profile.email);
               console.log("  Photo URL: " + profile.photoURL);
             });
           }
 
-          console.log("aaa");
-
-          //データ登録(Click)
-          $("#send").on("click", function () {
+          let uname; //onAuthChangedのif(user)内で使用可能なユーザー名を表す変数
+          $("#sendUname").on("click", function () {
+            uname = $("#uname").val();
             const msg = {
-              uname: $("#uname").val(),
+              uname: uname,
+            };
+            // const newPostRef = push(dbProfRef); //Pushできる状況を作って
+            set(dbProfRef, msg); //DBに値をセットする
+          });
+
+          //チャットデータ登録(Click)
+          $("#sendText").on("click", function () {
+            const msg = {
+              uname: uname,
+              uid: uid,
               text: $("#text").val(),
             };
-            const newPostRef = push(dbRef); //Pushできる状況を作って
+            const newPostRef = push(dbChatRef); //Pushできる状況を作って
             set(newPostRef, msg); //DBに値をセットする
           });
 
           //データ登録(Enter)
-          $("#text").on("keydown", function (e) {
-            console.log(e); //e変数の中身を確認！！
-            if (e.keyCode == 13) {
-              //EnterKey=13
-              const msg = {
-                uname: $("#uname").val(),
-                text: $("#text").val(),
-              };
-              const newPostRef = push(dbRef); //Pushできる状況を作って
-              set(newPostRef, msg); //DB"chat"にオブジェクトデータをセット
-            }
-          });
-
-          //最初にデータ取得＆onSnapshotでリアルタイムにデータを取得
-          // onChildAdded(ref(db, "users"), function (data) {
-          //   const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
-          //   console.log(msg);
-          //   const key = data.key; //データのユニークキー（削除や更新に使用可能）
-          //   console.log(key);
-
-          //   onChildAdded(ref(db, `users/${key}`), function (childData) {
-          //     console.log(childData.val());
-          //     console.log(childData.key);
-          //     // 表示用テキスト・HTMLを作成
-          //     let h = "<p>";
-          //     h += childData.val().uname;
-          //     h += "<br>";
-          //     h += childData.val().text;
-          //     h += "</p>";
-          //     $("#output").append(h); //#outputの最後に追加
-          //   });
+          // $("#text").on("keydown", function (e) {
+          //   console.log(e); //e変数の中身を確認！！
+          //   if (e.keyCode == 13) {
+          //     //EnterKey=13
+          //     const msg = {
+          //       uname: $("#uname").val(),
+          //       text: $("#text").val(),
+          //     };
+          //     const newPostRef = push(dbRef); //Pushできる状況を作って
+          //     set(newPostRef, msg); //DB"chat"にオブジェクトデータをセット
+          //   }
           // });
-        } else {
-          _redirect(); // User is signed out
-        }
-      });
 
-      onChildAdded(ref(db, "users"), function (data) {
+          // チャット参加者を取得して表示（最初にデータ取得＆onSnapshotでリアルタイムに）
+          onChildAdded(ref(db, "users"), function (data) {
             const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
             console.log(msg);
             const key = data.key; //データのユニークキー（削除や更新に使用可能）
             console.log(key);
-
-            onChildAdded(ref(db, `users/${key}`), function (childData) {
-              console.log(childData.val());
-              console.log(childData.key);
-              // 表示用テキスト・HTMLを作成
-              let h = "<p>";
-              h += childData.val().uname;
-              h += "<br>";
-              h += childData.val().text;
-              h += "</p>";
-              $("#output").append(h); //#outputの最後に追加
-            });
+            const h = `<li>${msg.uname}</li>`;
+            $("#participant__output").append(h);
           });
+
+          //チャットをリアルタイムで表示するための処理
+          onChildAdded(dbChatRef, function (data) {
+            const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
+            console.log(msg);
+            const key = data.key; //データのユニークキー（削除や更新に使用可能）
+            console.log(key);
+            
+            let h = '<div id="';
+            h += key;
+            h += '">';
+            h += '<div data-uname="uname';
+            h += uid;
+            h += '">';
+            h += msg.uname;
+            h += '</div><div data-text="text';
+            h += key;
+            h += '">';
+            h += msg.text;
+            h += "</div><div>";
+            h += key;
+            h += "</div>";
+            h += '<button data-btn="btnFd';
+            h += key;
+            h += '">';
+            h += "物理削除";
+            h += "</button>";
+            h += '<button data-btn="btnLd';
+            h += key;
+            h += '">';
+            h += "論理削除";
+            h += "</button>";
+            h += '<button data-btn="btnUd';
+            h += key;
+            h += '">';
+            h += "編集";
+            h += "</button>";
+            h += "</div>";
+            $("#chat__output").append(h);
+          });
+
+        } else {
+          _redirect(); // User is signed out
+        }
+      });
 
       //###############################################
       //Logout処理
