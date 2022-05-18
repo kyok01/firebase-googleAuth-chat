@@ -1,7 +1,68 @@
 .chat__right {
-    text-align: right;
+  text-align: right;
+  /* position:relative;
+        width:500px;
+        height:120px;
+        background:#FF8A78;
+        padding:10px;
+        text-align:center;
+        color:#FFFFFF;
+        font-size:30px;
+        font-weight:bold;
+        border-radius:10px;
+        -webkit-border-radius:10px;
+        -moz-border-radius:10px;    */
 }
 
+/* .chat__right:after{
+    border: solid transparent;
+    content:'';
+    height:0;
+    width:0;
+    pointer-events:none;
+    position:absolute;
+    border-color: rgba(255, 138, 120, 0);
+    border-top-width:10px;
+    border-bottom-width:10px;
+    border-left-width:10px;
+    border-right-width:10px;
+    margin-top: -10px;
+    border-left-color:#FF8A78;
+    left:100%;
+    top:50%;
+} */
+
 .chat__left {
-    text-align: left;
+  text-align: left;
+
+  /* position:relative;
+    width:500px;
+    height:120px;
+    background:#FF8A78;
+    padding:10px;
+    text-align:center;
+    color:#FFFFFF;
+    font-size:30px;
+    font-weight:bold;
+    border-radius:10px;
+    -webkit-border-radius:10px;
+    -moz-border-radius:10px; */
 }
+
+/* .chat__left:after{
+    border: solid transparent;
+    content:'';
+    height:0;
+    width:0;
+    pointer-events:none;
+    position:absolute;
+    border-color: rgba(255, 138, 120, 0);
+    border-top-width:10px;
+    border-bottom-width:10px;
+    border-left-width:10px;
+    border-right-width:10px;
+    margin-top: -10px;
+    border-right-color:#FF8A78;
+    right:100%;
+    top:50%;
+} */
