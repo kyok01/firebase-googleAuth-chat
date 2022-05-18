@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login-Success-</title>
+  </head>
+
+  <body>
+    <h1 id="status">Login...</h1>
+    <button id="out">ログアウト</button>
+
+    <!-- JQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- JQuery -->
+
+    <script type="module">
+      //###############################################
+      // 必要なJSを読み込み
+      //###############################################
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-app.js";
+      import {
+        getAuth,
+        signInWithPopup,
+        GoogleAuthProvider,
+        signOut,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/9.8.1/firebase-auth.js";
+
+      //###############################################
+      // Your web app's Firebase configuration
+      //###############################################
+      const firebaseConfig = {
+        apiKey: "AIzaSyDxTNT1PjBzczI9M2teRW-oM8NhF2RdjPg",
+        authDomain: "fir-auth-5913e.firebaseapp.com",
+        databaseURL: "https://fir-auth-5913e-default-rtdb.firebaseio.com",
+        projectId: "fir-auth-5913e",
+        storageBucket: "fir-auth-5913e.appspot.com",
+        messagingSenderId: "656896118732",
+        appId: "1:656896118732:web:5d21d485236748079ed769",
+      };
+      const app = initializeApp(firebaseConfig);
+
+      //###############################################
+      //GoogleAuth用
+      //###############################################
+      const provider = new GoogleAuthProvider();
+      provider.addScope("https://www.googleapis.com/auth/contacts.readonly");
+      const auth = getAuth();
+
+      //###############################################
+      // Loginしてる？
+      //###############################################
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          // User is signed in, see docs for a list of available properties
+          // https://firebase.google.com/docs/reference/js/firebase.User
+          const uid = user.uid;
+          console.log(user);
+          // const user = auth.currentUser;
+          if (user !== null) {
+            user.providerData.forEach((profile) => {
+              console.log("Sign-in provider: " + profile.providerId);
+              console.log("  Provider-specific UID: " + profile.uid);
+              console.log("  Name: " + profile.displayName);
+              console.log("  Email: " + profile.email);
+              console.log("  Photo URL: " + profile.photoURL);
+            });
+            setTimeout(_redirectChat(), 5000);
+          }
+        } else {
+          _redirect(); // User is signed out
+        }
+      });
+
+      //###############################################
+      //Logout処理
+      //###############################################
+      $("#out").on("click", function () {
+        // signInWithRedirect(auth, provider);ß
+        signOut(auth)
+          .then(() => {
+            // Sign-out successful.
+            _redirect();
+          })
+          .catch((error) => {
+            // An error happened.
+            console.error(error);
+          });
+      });
+
+      //###############################################
+      //Login画面へ
+      //###############################################
+      function _redirect() {
+        location.href = "login.html";
+      }
+
+      //###############################################
+      //チャット画面へ
+      //###############################################
+      function _redirectChat() {
+        location.href = "realtime_auth.html";
+      }
+    </script>
+  </body>
+</html>
