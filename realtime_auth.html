@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Firebase_version9_Auth_RealtimeDB(G'sACADEMY初学者用サンプル)</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <title>Firebase_version9_Auth_Google認証機能付きチャット</title>
     <style>
       .remove:hover {
         background: aquamarine;
@@ -17,11 +18,11 @@
     <h2>ログイン情報</h2>
     <div id="status">
       <p>あなたは以下の情報でGoogle Loginしています</p>
-      <div>名前：</div>
-      <div>画像：</div>
+      <div>名前：<span id="status__name"></span></div>
+      <div>画像：<span id="status__photo"></span></div>
     </div>
     <button id="out">ログアウト</button>
-    <h2>チャットの参加者</h2>
+    <h2>チャットへの参加</h2>
     <div>
       最初に名前を登録してください。すでに登録している場合更新できます。<br />名前：<input
         type="text"
@@ -111,6 +112,8 @@
       const provider = new GoogleAuthProvider();
       provider.addScope("https://www.googleapis.com/auth/contacts.readonly");
       const auth = getAuth();
+      let displayUserName;
+      let displayUserPhoto;
 
       //###############################################
       //Loginしていれば処理します
@@ -126,11 +129,15 @@
           //ユーザー情報取得できます
           if (user !== null) {
             user.providerData.forEach((profile) => {
-              console.log("Sign-in provider: " + profile.providerId);
+              // console.log("Sign-in provider: " + profile.providerId);
               // console.log("  Provider-specific UID: " + profile.uid);
-              // console.log("  Name: " + profile.displayName);
+              console.log("  Name: " + profile.displayName);
               // console.log("  Email: " + profile.email);
               console.log("  Photo URL: " + profile.photoURL);
+              displayUserName = profile.displayName;
+              displayUserPhoto = profile.photoURL;
+              $("#status__name").html(displayUserName);
+              $("#status__photo").html(`<img src="${displayUserPhoto}">`);
             });
           }
 
@@ -162,11 +169,23 @@
                   $("#text").val("");
                 } else {
                   console.log("No data available");
+                  alert("ユーザー名が登録されていません");
                 }
               })
               .catch((error) => {
                 console.error(error);
+                alert("ユーザー名が登録されていません");
               });
+          });
+
+          // 物理削除、FdはPhysical Deletionの略
+          $(document).on("click", 'button[data-btn^="btnFd"]', function () {
+            console.log("osetayo");
+            console.log($(this).data("btn")); //thisでクリックされたそのものを取得して、そこに付与したdata-btn属性をdebugしている
+            console.log($(this).data("btn").slice(5)); //replaceを使うともしkeyにbtnFdが含まれるとバグが起きるので、sliceを用いてbtnFd後の5の位置のみ切り出す
+            const deleteKey = $(this).data("btn").slice(5);
+            const dbRefDelete = ref(db, "chat/" + deleteKey);
+            remove(dbRefDelete);
           });
 
           //データ登録(Enter)
@@ -200,15 +219,15 @@
             const key = data.key; //データのユニークキー（削除や更新に使用可能）
             console.log(key);
             // const h = `<li>${msg.uname}</li>`;
-            const uname = msg.uname
+            const uname = msg.uname;
             $(`[data-uname="uname${key}"]`).html(uname);
 
-            onChildAdded(dbChatRef, function(data){
+            onChildAdded(dbChatRef, function (data) {
               const childKey = data.key;
-              if(data.val().uid == uid){
-                update(ref(db, `chat/${childKey}`), {uname: uname})
+              if (data.val().uid == uid) {
+                update(ref(db, `chat/${childKey}`), { uname: uname });
               }
-            })
+            });
           });
 
           //チャットをリアルタイムで表示するための処理
@@ -232,23 +251,50 @@
             h += "</div><div>";
             h += key;
             h += "</div>";
-            h += '<button data-btn="btnFd';
-            h += key;
-            h += '">';
-            h += "物理削除";
-            h += "</button>";
-            h += '<button data-btn="btnLd';
-            h += key;
-            h += '">';
-            h += "論理削除";
-            h += "</button>";
-            h += '<button data-btn="btnUd';
-            h += key;
-            h += '">';
-            h += "編集";
-            h += "</button>";
+            // h += '<button data-btn="btnFd';
+            // h += key;
+            // h += '">';
+            // h += "物理削除";
+            // h += "</button>";
+            // h += '<button data-btn="btnLd';
+            // h += key;
+            // h += '">';
+            // h += "論理削除";
+            // h += "</button>";
+            // h += '<button data-btn="btnUd';
+            // h += key;
+            // h += '">';
+            // h += "編集";
+            // h += "</button>";
             h += "</div>";
             $("#chat__output").append(h);
+
+            if (msg.uid == uid) {
+              // 自身の場合、右表示。
+              console.log("自分");
+              $("#" + key).attr("class", "chat__right");
+              // 自分のチャットのみ物理削除及び論理削除できる
+              let buttonHtml = '<button data-btn="btnFd';
+              buttonHtml += key;
+              buttonHtml += '">';
+              buttonHtml += "物理削除";
+              buttonHtml += "</button>";
+              buttonHtml += '<button data-btn="btnLd';
+              buttonHtml += key;
+              buttonHtml += '">';
+              buttonHtml += "論理削除";
+              buttonHtml += "</button>";
+              buttonHtml += '<button data-btn="btnUd';
+              buttonHtml += key;
+              buttonHtml += '">';
+              buttonHtml += "編集";
+              buttonHtml += "</button>";
+              $(`#${key}`).append(buttonHtml);
+            } else {
+              //自身以外の場合、左表示
+              console.log("他人");
+              $("#" + key).attr("class", "chat__left");
+            }
           });
         } else {
           _redirect(); // User is signed out
