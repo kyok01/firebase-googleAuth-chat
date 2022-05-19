@@ -29,6 +29,7 @@
         id="uname"
       />
       <button id="sendUname">送信</button>
+      <button id="sendTest">テスト階層作る用送信</button>
     </div>
     <div>
       <div id="participant">
@@ -179,6 +180,10 @@
               });
           });
 
+          $("#sendTest").on("click", function () {
+            set(ref(db, "chat/text"), { text: "aaa" });
+          });
+
           // 物理削除、FdはPhysical Deletionの略
           $(document).on("click", 'button[data-btn^="btnFd"]', function () {
             console.log("物理削除ボタン押した");
@@ -263,9 +268,7 @@
             $(this).removeAttr("data-btn");
             $(this).attr("data-btn", "btnUd" + updateEndKey);
             console.log($(`div[data-uname="uname${updateEndKey}"]`).html()); //debug
-            const updateUName = $(
-              `li[data-uname="uname${uid}"]`
-            ).html(); //編集後のunameを取得
+            const updateUName = $(`li[data-uname="uname${uid}"]`).html(); //編集後のunameを取得
             const updateText = $(`div[data-text="text${updateEndKey}"]`).html(); //編集後のunameを取得
             //dataを送信
             const postData = {
@@ -285,14 +288,7 @@
 
           //受信イベント
           // チャット参加者を取得して表示（最初にデータ取得＆onSnapshotでリアルタイムに）
-          onChildAdded(ref(db, "users"), function (data) {
-            const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
-            console.log(msg);
-            const key = data.key; //データのユニークキー（削除や更新に使用可能）
-            console.log(key);
-            const h = `<li data-uname="uname${key}">${msg.uname}</li>`;
-            $("#participant__output").append(h);
-          });
+          oCA();
 
           //名前を変更したら名前の表示箇所が全て変更になる
           onChildChanged(ref(db, "users"), function (data) {
@@ -379,6 +375,11 @@
                 console.log("他人");
                 $("#" + key).attr("class", "chat__left");
               }
+
+              onChildAdded(ref(db, "users"), function (data) {
+                console.log("onChildaddedの中のonChildAddedが呼び出された");
+                console.log(data.key);
+              });
             }
           });
 
@@ -455,6 +456,17 @@
       //###############################################
       function _redirect() {
         location.href = "login.html";
+      }
+
+      function oCA() {
+        onChildAdded(ref(db, "users"), function (data) {
+          const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
+          console.log(msg);
+          const key = data.key; //データのユニークキー（削除や更新に使用可能）
+          console.log(key);
+          const h = `<li data-uname="uname${key}">${msg.uname}</li>`;
+          $("#participant__output").append(h);
+        });
       }
     </script>
   </body>
