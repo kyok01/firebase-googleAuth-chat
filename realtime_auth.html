@@ -296,12 +296,14 @@
 
           //名前を変更したら名前の表示箇所が全て変更になる
           onChildChanged(ref(db, "users"), function (data) {
+            console.log("名前の登録や変更を受信");
             const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
             console.log(msg);
             const key = data.key; //データのユニークキー（削除や更新に使用可能）
             console.log(key);
             // const h = `<li>${msg.uname}</li>`;
             const uname = msg.uname;
+            debugger;
             $(`[data-uname="uname${key}"]`).html(uname);
 
             onChildAdded(dbChatRef, function (data) {
@@ -324,7 +326,7 @@
               h += key;
               h += '">';
               h += '<div data-uname="uname';
-              h += uid;
+              h += msg.uid;
               h += '">';
               h += msg.uname;
               h += '</div><div data-text="text';
@@ -383,7 +385,7 @@
 
           //チャット子データ削除時に画面からも消す処理
           onChildRemoved(dbChatRef, function (data) {
-            console.log("chiid_removedイベントがトリガーされた");
+            console.log("child_removedイベントがトリガーされた");
             console.log(data); //debug
             const key = data.key; //ユニークキーの取得
             console.log($("#" + key));
