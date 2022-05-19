@@ -303,7 +303,6 @@
             console.log(key);
             // const h = `<li>${msg.uname}</li>`;
             const uname = msg.uname;
-            debugger;
             $(`[data-uname="uname${key}"]`).html(uname);
 
             onChildAdded(dbChatRef, function (data) {
