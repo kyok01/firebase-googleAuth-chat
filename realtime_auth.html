@@ -30,6 +30,8 @@
       />
       <button id="sendUname">送信</button>
       <button id="sendTest">テスト階層作る用送信</button>
+      <button id="sendBool">変数occBoolをtrueにする</button>
+      <button id="sendBool3">変数occBool3をtrueにする</button>
     </div>
     <div>
       <div id="participant">
@@ -44,6 +46,16 @@
       <div id="chat">
         <div id="chat__output" style="overflow: auto; height: 300px;"></div>
       </div>
+      <h2>実験場所1</h2>
+      <div
+        id="test1__output"
+        style="overflow: auto; height: 300px; width: : 800px;"
+      ></div>
+      <h2>実験場所2</h2>
+      <div
+        id="test2__output"
+        style="overflow: auto; height: 300px; width: : 800px;"
+      ></div>
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -116,6 +128,11 @@
       let displayUserName;
       let displayUserPhoto;
 
+      //onChildAddedを読み込み時に作動させずに、データ追加時のみ実行するための変数
+      let occBool = false;
+      let occBool2 = true;
+      let occBool3 = false;
+
       //###############################################
       //Loginしていれば処理します
       //###############################################
@@ -158,6 +175,8 @@
             get(child(ref(db), `users/${uid}`))
               .then((snapshot) => {
                 if (snapshot.exists()) {
+                  makeBoolTrue();
+                  // occBool = true; //onChildAddedを読み込み時に作動させずに、データ追加時のみ実行するためのbool値を制御
                   console.log(snapshot.val()); //debug
                   const uname = snapshot.val().uname;
                   const msg = {
@@ -167,8 +186,12 @@
                     deleteFrag: false,
                   };
                   const newPostRef = push(dbChatRef); //Pushできる状況を作って
+                  debugger;
                   set(newPostRef, msg); //DBに値をセットする
                   $("#text").val("");
+                  console.log(occBool);
+                  occboolTrueFinc();
+                  // occBool = true; //onChildAddedを読み込み時に作動させずに、データ追加時のみ実行するためのbool値を制御
                 } else {
                   console.log("No data available");
                   alert("ユーザー名が登録されていません");
@@ -181,8 +204,10 @@
           });
 
           $("#sendTest").on("click", function () {
-            set(ref(db, "chat/text"), { text: "aaa" });
+            set(ref(db, "chat/text/aaa/aaa"), { text: "bbb" });
           });
+
+          $("#sendBool").on("click", makeBoolTrue);
 
           // 物理削除、FdはPhysical Deletionの略
           $(document).on("click", 'button[data-btn^="btnFd"]', function () {
@@ -310,78 +335,172 @@
           });
 
           //チャットをリアルタイムで表示するための処理
-          onChildAdded(dbChatRef, function (data) {
-            const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
-            console.log(msg);
-            const key = data.key; //データのユニークキー（削除や更新に使用可能）
-            console.log(key);
-            //deleteFragがfalseなら表示する
-            if (!msg.deleteFrag) {
-              let h = '<div id="';
-              h += key;
-              h += '">';
-              h += '<div data-uname="uname';
-              h += msg.uid;
-              h += '">';
-              h += msg.uname;
-              h += '</div><div data-text="text';
-              h += key;
-              h += '">';
-              h += msg.text;
-              h += "</div><div>";
-              h += key;
-              h += "</div>";
-              // h += '<button data-btn="btnFd';
-              // h += key;
-              // h += '">';
-              // h += "物理削除";
-              // h += "</button>";
-              // h += '<button data-btn="btnLd';
-              // h += key;
-              // h += '">';
-              // h += "論理削除";
-              // h += "</button>";
-              // h += '<button data-btn="btnUd';
-              // h += key;
-              // h += '">';
-              // h += "編集";
-              // h += "</button>";
-              h += "</div>";
-              $("#chat__output").append(h);
+          function showRealtime() {
+            if (occBool2) {
+              onChildAdded(dbChatRef, function (data) {
+                const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
+                console.log(msg);
+                const key = data.key; //データのユニークキー（削除や更新に使用可能）
+                console.log(key);
+                //deleteFragがfalseなら表示する
+                if (!msg.deleteFrag) {
+                  let h = '<div id="';
+                  h += key;
+                  h += '">';
+                  h += '<div data-uname="uname';
+                  h += msg.uid;
+                  h += '">';
+                  h += msg.uname;
+                  h += '</div><div data-text="text';
+                  h += key;
+                  h += '">';
+                  h += msg.text;
+                  h += "</div><div>";
+                  h += key;
+                  h += "</div>";
+                  // h += '<button data-btn="btnFd';
+                  // h += key;
+                  // h += '">';
+                  // h += "物理削除";
+                  // h += "</button>";
+                  // h += '<button data-btn="btnLd';
+                  // h += key;
+                  // h += '">';
+                  // h += "論理削除";
+                  // h += "</button>";
+                  // h += '<button data-btn="btnUd';
+                  // h += key;
+                  // h += '">';
+                  // h += "編集";
+                  // h += "</button>";
+                  h += "</div>";
+                  $("#chat__output").append(h);
 
-              if (msg.uid == uid) {
-                // 自身の場合、右表示。
-                console.log("自分");
-                $("#" + key).attr("class", "chat__right");
-                // 自分のチャットのみ物理削除及び論理削除できる
-                let buttonHtml = '<button data-btn="btnFd';
-                buttonHtml += key;
-                buttonHtml += '">';
-                buttonHtml += "物理削除";
-                buttonHtml += "</button>";
-                buttonHtml += '<button data-btn="btnLd';
-                buttonHtml += key;
-                buttonHtml += '">';
-                buttonHtml += "論理削除";
-                buttonHtml += "</button>";
-                buttonHtml += '<button data-btn="btnUd';
-                buttonHtml += key;
-                buttonHtml += '">';
-                buttonHtml += "編集";
-                buttonHtml += "</button>";
-                $(`#${key}`).append(buttonHtml);
-              } else {
-                //自身以外の場合、左表示
-                console.log("他人");
-                $("#" + key).attr("class", "chat__left");
-              }
+                  if (msg.uid == uid) {
+                    // 自身の場合、右表示。
+                    console.log("自分");
+                    $("#" + key).attr("class", "chat__right");
+                    // 自分のチャットのみ物理削除及び論理削除できる
+                    let buttonHtml = '<button data-btn="btnFd';
+                    buttonHtml += key;
+                    buttonHtml += '">';
+                    buttonHtml += "物理削除";
+                    buttonHtml += "</button>";
+                    buttonHtml += '<button data-btn="btnLd';
+                    buttonHtml += key;
+                    buttonHtml += '">';
+                    buttonHtml += "論理削除";
+                    buttonHtml += "</button>";
+                    buttonHtml += '<button data-btn="btnUd';
+                    buttonHtml += key;
+                    buttonHtml += '">';
+                    buttonHtml += "編集";
+                    buttonHtml += "</button>";
+                    $(`#${key}`).append(buttonHtml);
+                  } else {
+                    //自身以外の場合、左表示
+                    console.log("他人");
+                    $("#" + key).attr("class", "chat__left");
+                  }
 
-              onChildAdded(ref(db, "users"), function (data) {
-                console.log("onChildaddedの中のonChildAddedが呼び出された");
-                console.log(data.key);
+                  onChildAdded(ref(db, "users"), function (data) {
+                    console.log("onChildaddedの中のonChildAddedが呼び出された");
+                    console.log(data.key);
+                  });
+                }
               });
             }
-          });
+          }
+          showRealtime();
+
+          function showRealtime_test1() {
+            if (occBool2) {
+              onChildAdded(dbChatRef, function (data) {
+                const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
+                console.log(msg);
+                const key = data.key; //データのユニークキー（削除や更新に使用可能）
+                console.log(key);
+                //deleteFragがfalseなら表示する
+                if (!msg.deleteFrag) {
+                  let h = "<div>";
+                  h += '<div data-uname="uname';
+                  h += msg.uid;
+                  h += '">';
+                  h += msg.uname;
+                  h += '</div><div data-text="text';
+                  h += key;
+                  h += '">';
+                  h += msg.text;
+                  h += "</div><div>";
+                  h += key;
+                  h += "</div>";
+                  // h += '<button data-btn="btnFd';
+                  // h += key;
+                  // h += '">';
+                  // h += "物理削除";
+                  // h += "</button>";
+                  // h += '<button data-btn="btnLd';
+                  // h += key;
+                  // h += '">';
+                  // h += "論理削除";
+                  // h += "</button>";
+                  // h += '<button data-btn="btnUd';
+                  // h += key;
+                  // h += '">';
+                  // h += "編集";
+                  // h += "</button>";
+                  h += "</div>";
+                  $("#test1__output").append(h);
+                }
+              });
+            }
+          }
+          showRealtime_test1();
+
+          function showRealtime_test2() {
+            onChildAdded(dbChatRef, function (data) {
+              console.log("test2内のif文前のconsole.logです");
+              if (occBool3) {
+                const msg = data.val(); //オブジェクトデータを取得し、変数msgに代入
+                console.log(msg);
+                const key = data.key; //データのユニークキー（削除や更新に使用可能）
+                console.log(key);
+                //deleteFragがfalseなら表示する
+                if (!msg.deleteFrag) {
+                  let h = "<div>";
+                  h += '<div data-uname="uname';
+                  h += msg.uid;
+                  h += '">';
+                  h += msg.uname;
+                  h += '</div><div data-text="text';
+                  h += key;
+                  h += '">';
+                  h += msg.text;
+                  h += "</div><div>";
+                  h += key;
+                  h += "</div>";
+                  // h += '<button data-btn="btnFd';
+                  // h += key;
+                  // h += '">';
+                  // h += "物理削除";
+                  // h += "</button>";
+                  // h += '<button data-btn="btnLd';
+                  // h += key;
+                  // h += '">';
+                  // h += "論理削除";
+                  // h += "</button>";
+                  // h += '<button data-btn="btnUd';
+                  // h += key;
+                  // h += '">';
+                  // h += "編集";
+                  // h += "</button>";
+                  h += "</div>";
+                  $("#test2__output").append(h);
+                }
+              }
+            });
+          }
+          showRealtime_test2();
 
           //チャット子データ削除時に画面からも消す処理
           onChildRemoved(dbChatRef, function (data) {
@@ -430,6 +549,43 @@
               $(`div[data-text="text${key}"]`).html(msg.text);
             }
           });
+
+          //onValueの動きを確認するために実験的に設置
+          onValue(ref(db, "chat"), function (snapshot) {
+            console.log(snapshot);
+            console.log(snapshot.key);
+            console.log(snapshot.val());
+            snapshot.forEach((childSnapshot) => {
+              console.log(childSnapshot);
+              console.log(childSnapshot.key);
+              console.log(childSnapshot.val());
+            });
+            onChildAdded(dbChatRef, function (data) {
+              console.log("onvalueの中のonCHildAdded作動");
+              console.log(data.key);
+            });
+          });
+
+          //onChildAddedの実験
+          function occboolTrueFinc() {
+            if (occBool) {
+              console.log("第一関門突破");
+              onChildAdded(dbChatRef, function (data) {
+                console.log("bool if文の中のonCHildAdded作動");
+                console.log(data.key);
+                onChildAdded(ref(db, "users"), function (data) {
+                  console.log("onChildaddedの中のonChildAddedが呼び出された");
+                  console.log(data.key);
+                });
+              });
+            }
+          }
+
+          //関数まとめて記載する欄
+          function makeBoolTrue() {
+            occBool = true;
+            console.log(occBool);
+          }
         } else {
           _redirect(); // User is signed out
         }
