@@ -208,6 +208,10 @@
           });
 
           $("#sendBool").on("click", makeBoolTrue);
+          
+          $("#sendBool3").on("click", function(){
+            occBool3 = true;
+          });
 
           // 物理削除、FdはPhysical Deletionの略
           $(document).on("click", 'button[data-btn^="btnFd"]', function () {
